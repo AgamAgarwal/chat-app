@@ -40,9 +40,9 @@ public class Client {
 	public Client(String nn) {
 		nickname=nn;
 		try {
-			socket=new DatagramSocket(Constants.Client.PORT);	//try to bind the port. Note this is required as it will be needed for if any other client wants to send a message
+			socket=new DatagramSocket();	//try to bind the port. Note this is required as it will be needed for if any other client wants to send a message
 		} catch (SocketException e) {
-			System.err.println("Error binding port "+Constants.Client.PORT);
+			System.err.println("Error binding any port");
 			e.printStackTrace();
 		}
 		try {

@@ -55,9 +55,9 @@ public class Server {
 	 * @param clientIP
 	 * @return false if the nickname is already taken by some other client
 	 */
-	public boolean updateClient(String clientName, InetAddress clientIP) {
+	public boolean updateClient(String clientName, InetAddress clientIP, int clientPort) {
 		//TODO: currently this just prints the client name. But it should update the time in the client table and return false if name is already taken
-		System.out.println(clientIP.getHostAddress()+" : "+clientName);
+		System.out.println(clientIP.getHostAddress()+":"+clientPort+" - "+clientName);
 		return true;
 	}
 	
@@ -81,7 +81,7 @@ public class Server {
 					e.printStackTrace();
 					continue;	//try to receive another packet
 				}
-				updateClient(new String(packet.getData()), packet.getAddress());	//update the time of last heartbeat of the client
+				updateClient(new String(packet.getData()), packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
 				//TODO: use return value of updateClient() to respond to the client if the nickname has already been taken
 			}
 		}
