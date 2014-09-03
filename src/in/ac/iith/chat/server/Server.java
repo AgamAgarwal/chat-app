@@ -19,7 +19,7 @@ public class Server {
 	/**
 	 * HashMap to store nickname to IP Address mapping
 	 */
-	HashMap<InetAddress, String> connectedClients;
+	HashMap<String, ClientDetails> onlineClients;
 	
 	/**
 	 * A separate thread to receive all the heartbeats
@@ -37,7 +37,7 @@ public class Server {
 			System.err.println("Can't bind port "+Constants.Server.PORT);	//if bind fails
 			e.printStackTrace();
 		}
-		connectedClients=new HashMap<InetAddress, String>();	//initialize hashmap
+		onlineClients=new HashMap<String, ClientDetails>();	//initialize hashmap
 	}
 	
 	/**
@@ -57,8 +57,19 @@ public class Server {
 	 */
 	public boolean updateClient(String clientName, InetAddress clientIP, int clientPort) {
 		//TODO: currently this just prints the client name. But it should update the time in the client table and return false if name is already taken
-		System.out.println(clientIP.getHostAddress()+":"+clientPort+" - "+clientName);
-		return true;
+		if(onlineClients.containsKey(clientName)) {
+			ClientDetails cd=onlineClients.get(clientName);
+			if(clientIP.equals(cd.getIP())) {	//if IP address matches
+				cd.updateHeartbeat();
+				System.out.println(cd.toString());
+				return true;
+			} else	//nickname already taken by some other client(checked using IP address)
+				return false;
+		} else {	//if new client
+			onlineClients.put(clientName, new ClientDetails(clientName, clientIP, clientPort));
+			System.out.println("Added new client:"+clientName);
+			return true;
+		}
 	}
 	
 	/**
