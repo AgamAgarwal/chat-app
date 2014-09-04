@@ -25,6 +25,6 @@ public class ClientDetails {
 	
 	@Override
 	public String toString() {
-		return nickname+"@"+ipAddress+":"+port+" - "+lastHeartbeat;
+		return nickname+"@"+ipAddress+":"+port;
 	}
 }

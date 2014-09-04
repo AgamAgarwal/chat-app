@@ -68,7 +68,7 @@ public class Client {
 		
 		@Override
 		public void run() {
-			byte[] data=nickname.getBytes();	//heartbeat data comprises of its nickname
+			byte[] data=(Constants.HEARTBEAT_ID+" "+nickname).getBytes();	//heartbeat data comprises of its nickname
 			try {
 				socket.send(new DatagramPacket(data, data.length, serverIP, Constants.Server.PORT));	//send the heartbeat
 			} catch (IOException e) {

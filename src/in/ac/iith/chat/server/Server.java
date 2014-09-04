@@ -8,6 +8,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
+import java.util.Iterator;
 
 public class Server {
 	
@@ -72,6 +73,19 @@ public class Server {
 		}
 	}
 	
+	public void sendList(InetAddress clientIP, int clientPort) {
+		StringBuilder sb=new StringBuilder();
+		Iterator<ClientDetails> it=onlineClients.values().iterator();
+		while(it.hasNext())
+			sb.append(it.next().toString()+"\n");
+		byte[] data=sb.toString().getBytes();
+		try {
+			serverSocket.send(new DatagramPacket(data, data.length, clientIP, clientPort));
+		} catch (IOException e) {
+			System.err.println("Unable to send list to client at "+clientIP.getHostAddress()+":"+clientPort);
+		}
+	}
+	
 	/**
 	 * Class to be run as a separate thread to receive all the heartbeats
 	 */
@@ -92,7 +106,12 @@ public class Server {
 					e.printStackTrace();
 					continue;	//try to receive another packet
 				}
-				updateClient(new String(packet.getData()), packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
+				String dataString[]=(new String(data)).split(" ", 2);
+				if(dataString[0].equals(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
+					updateClient(new String(data), packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
+				} else if(dataString[1].equals(Constants.REQUEST_ID)) {
+					sendList(packet.getAddress(), packet.getPort());
+				}
 				//TODO: use return value of updateClient() to respond to the client if the nickname has already been taken
 			}
 		}
