@@ -1,6 +1,6 @@
 Client
--sends regular heart-beats to server, to notify that it is online.
--requests server for list of other online clients.
+-sends regular heart-beats to server, to notify that it is online.		Done
+-requests server for list of other online clients.		Done
 -can directly send message to other clients, after knowing their IP address
 -if the client disconnects suddenly, other things and connections shouldn't be affected.
 
@@ -10,5 +10,5 @@ Server
 -When a new client joins, it checks list of currently clients if the nickname is free. Responds accordingly.
 
 Decisions
--Client-Server interaction. TCP or UDP?
--Client-Client interaction. TCP or UDP?
+-Client-Server interaction. TCP or UDP?		UDP
+-Client-Client interaction. TCP or UDP?		UDP

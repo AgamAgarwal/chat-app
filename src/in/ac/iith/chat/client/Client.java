@@ -16,7 +16,7 @@ import java.util.TimerTask;
 public class Client {
 	
 	/**
-	 * Client side socket
+	 * Client side sockets
 	 */
 	DatagramSocket serverSocket;
 	
@@ -93,10 +93,10 @@ public class Client {
 				System.err.println("Error reading command");
 				continue;
 			}
-			if(command.equals("l"))
+			if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
-			else if(command.equals("c"))
-				;	//TODO: lock terminal, get input for chat and send it
+			else if(command.equals(Constants.Client.CONNECT_COMMAND))
+				;	//TODO: connect to given client
 		}
 	}
 	
