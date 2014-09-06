@@ -18,7 +18,7 @@ public class Client {
 	/**
 	 * Client side sockets
 	 */
-	DatagramSocket serverSocket;
+	DatagramSocket serverSocket, clientSocket;
 	
 	/**
 	 * Server's IP Address
@@ -56,15 +56,17 @@ public class Client {
 		nickname=nn;
 		try {
 			serverSocket=new DatagramSocket();	//try to bind the port. Note this is required as it will be needed for if any other client wants to send a message
+			clientSocket=new DatagramSocket();
+			System.out.println(serverSocket.getLocalPort()+" "+clientSocket.getLocalPort());
 		} catch (SocketException e) {
 			System.err.println("Error binding any port");
-			e.printStackTrace();
+			System.exit(-1);
 		}
 		try {
 			serverIP=InetAddress.getByName("localhost");	//currently using localhost, will have to change later
 		} catch (UnknownHostException e) {
 			System.out.println("Unknown server");
-			e.printStackTrace();
+			System.exit(-1);
 		}
 		br=new BufferedReader(new InputStreamReader(System.in));
 		heartbeatTimer=new Timer();	//initialize Timer object
@@ -127,7 +129,7 @@ public class Client {
 		
 		@Override
 		public void run() {
-			sendThroughSocket(Constants.HEARTBEAT_ID+" "+nickname, serverSocket);	//heartbeat data comprises of its nickname
+			sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket);	//heartbeat data comprises of its nickname
 		}
 	}
 	

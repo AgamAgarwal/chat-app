@@ -104,10 +104,14 @@ public class Server {
 					continue;	//try to receive another packet
 				}
 				String[] dataString=(new String(data)).split(" ");
-				if(dataString[0].startsWith(Constants.REQUEST_ID)) {
-					sendList(packet.getAddress(), packet.getPort());
-				} else if(dataString[0].startsWith(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
-					updateClient(dataString[1], packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
+				try {
+					if(dataString[0].startsWith(Constants.REQUEST_ID)) {
+						sendList(packet.getAddress(), packet.getPort());
+					} else if(dataString[0].startsWith(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
+						updateClient(dataString[2], packet.getAddress(), Integer.parseInt(dataString[1]));	//update the time of last heartbeat of the client
+					}
+				} catch(Exception e) {
+					System.err.println("Invalid request from client at "+packet.getAddress().getHostAddress());
 				}
 				//TODO: use return value of updateClient() to respond to the client if the nickname has already been taken
 			}
