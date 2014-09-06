@@ -11,6 +11,8 @@ public final class Constants {
 		public final static String CONNECT_COMMAND="c";
 		public final static String DISCONNECT_COMMAND="bye";
 		public final static String MESSAGE_COMMAND="m";
+		
+		public final static String CHAT_REQUEST="crq";
 	}
 	public final static String HEARTBEAT_ID="hb";
 	public final static String REQUEST_ID="rq";

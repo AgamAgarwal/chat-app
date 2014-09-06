@@ -42,7 +42,7 @@ public class Client {
 	 */
 	BufferedReader br;
 	
-	Thread serverReceiver;
+	Thread serverReceiver, clientReceiver;
 	
 	HashMap<String, ClientDetails> otherClients;
 	
@@ -61,7 +61,6 @@ public class Client {
 		try {
 			serverSocket=new DatagramSocket();	//try to bind the port. Note this is required as it will be needed for if any other client wants to send a message
 			clientSocket=new DatagramSocket();
-			System.out.println(serverSocket.getLocalPort()+" "+clientSocket.getLocalPort());
 		} catch (SocketException e) {
 			System.err.println("Error binding any port");
 			System.exit(-1);
@@ -84,6 +83,8 @@ public class Client {
 		heartbeatTimer.scheduleAtFixedRate(new HeartbeatTask(), 0, Constants.Client.HEARTBEAT_RATE);	//schedule heartbeat at regular intervals
 		serverReceiver=new Thread(new ServerReceiver());
 		serverReceiver.start();
+		clientReceiver=new Thread(new ClientReceiver());
+		clientReceiver.start();
 		promptLoop();
 	}
 	
@@ -102,9 +103,30 @@ public class Client {
 			}
 			if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
-			else if(command.equals(Constants.Client.CONNECT_COMMAND))
-				;	//TODO: connect to given client
+			else if(command.startsWith(Constants.Client.CONNECT_COMMAND)) {
+				int spaceIndex=command.indexOf(' ');
+				String name;
+				if(spaceIndex==-1) {	//if name is not given with the command 
+					System.out.print("Whom do you want to chat with? ");
+					try {
+						name=br.readLine();
+					} catch (IOException e) {
+						continue;
+					}
+				} else
+					name=command.substring(spaceIndex+1);
+				
+				//checking if the name exists in the client list
+				if(otherClients.containsKey(name))
+					connectToClient(name);
+				else
+					System.err.println("Invalid client name, try again!!!");
+			}
 		}
+	}
+	
+	private void connectToClient(String name) {
+		System.out.println("Connecting to "+name);
 	}
 	
 	/**
@@ -161,16 +183,37 @@ public class Client {
 						if(name.equals(nickname)) continue;	//skip self
 						InetAddress ip;
 						try {
-							ip=InetAddress.getByName(line[1]);
+							ip=InetAddress.getByName(line[1].trim());
 						} catch (UnknownHostException e) {
 							continue;
 						}
-						int port=Integer.parseInt(line[2]);
+						int port=Integer.parseInt(line[2].trim());
 						System.out.println(name);
 						otherClients.put(name, new ClientDetails(name, ip, port));
 					}
 				}
 				waitForList=false;
+			}
+		}
+	}
+	
+	private class ClientReceiver implements Runnable {
+
+		@Override
+		public void run() {
+			while(true) {
+				byte[] data=new byte[1024*1024];
+				DatagramPacket packet=new DatagramPacket(data, data.length);
+				try {
+					serverSocket.receive(packet);
+				} catch(IOException e) {
+					System.err.println("Error while receiving message from server");
+					continue;
+				}
+				String reply=(new String(data)).trim();
+				if(reply.startsWith(Constants.Client.CHAT_REQUEST)) {
+					//TODO: Check if user is not chatting with someone currently, then directly accept request or ask user for confirmation
+				}
 			}
 		}
 		
