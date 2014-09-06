@@ -62,7 +62,7 @@ public class Server {
 			ClientDetails cd=onlineClients.get(clientName);
 			if(clientIP.equals(cd.getIP())) {	//if IP address matches
 				cd.updateHeartbeat();
-				System.out.println(cd.toString());
+				//System.out.println(cd.toString());
 				return true;
 			} else	//nickname already taken by some other client(checked using IP address)
 				return false;
@@ -77,8 +77,9 @@ public class Server {
 		StringBuilder sb=new StringBuilder();
 		Iterator<ClientDetails> it=onlineClients.values().iterator();
 		while(it.hasNext())
-			sb.append(it.next().toString()+"\n");
-		byte[] data=sb.toString().getBytes();
+			sb.append(it.next().toString()).append("\n");
+		String reply=sb.toString();
+		byte[] data=reply.getBytes();
 		try {
 			serverSocket.send(new DatagramPacket(data, data.length, clientIP, clientPort));
 		} catch (IOException e) {
@@ -91,9 +92,6 @@ public class Server {
 	 */
 	private class HeartbeatReceiver implements Runnable {
 		
-		public HeartbeatReceiver() {
-		}
-		
 		@Override
 		public void run() {
 			while(true) {
@@ -103,14 +101,13 @@ public class Server {
 					serverSocket.receive(packet);	//receive the next packet. Note that this is a blocking call
 				} catch (IOException e) {
 					System.err.println("Error while receiving packet.");
-					e.printStackTrace();
 					continue;	//try to receive another packet
 				}
-				String dataString[]=(new String(data)).split(" ", 2);
-				if(dataString[0].equals(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
-					updateClient(new String(data), packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
-				} else if(dataString[1].equals(Constants.REQUEST_ID)) {
+				String[] dataString=(new String(data)).split(" ");
+				if(dataString[0].startsWith(Constants.REQUEST_ID)) {
 					sendList(packet.getAddress(), packet.getPort());
+				} else if(dataString[0].startsWith(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
+					updateClient(dataString[1], packet.getAddress(), packet.getPort());	//update the time of last heartbeat of the client
 				}
 				//TODO: use return value of updateClient() to respond to the client if the nickname has already been taken
 			}
