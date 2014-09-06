@@ -1,5 +1,6 @@
 package in.ac.iith.chat.client;
 
+import in.ac.iith.chat.common.ClientDetails;
 import in.ac.iith.chat.common.Constants;
 
 import java.io.BufferedReader;
@@ -10,6 +11,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -42,6 +44,8 @@ public class Client {
 	
 	Thread serverReceiver;
 	
+	HashMap<String, ClientDetails> otherClients;
+	
 	/**
 	 * Will be set to true if the client is waiting for the list from the server.
 	 * It is set as volatile because its value will be changed by different threads
@@ -69,6 +73,7 @@ public class Client {
 			System.exit(-1);
 		}
 		br=new BufferedReader(new InputStreamReader(System.in));
+		otherClients=null;
 		heartbeatTimer=new Timer();	//initialize Timer object
 	}
 	
@@ -146,7 +151,25 @@ public class Client {
 					System.err.println("Error while receiving message from server");
 					continue;
 				}
-				System.out.print("Message from server:\n"+new String(data));
+				String[] reply=new String(data).split("\n");
+				if(reply[0].equals(Constants.Server.LIST_HEADER)) {
+					otherClients=new HashMap<String, ClientDetails>();
+					for(int i=1;i<reply.length;i++) {
+						String[] line=reply[i].split(":");
+						if(line.length<3) continue;
+						String name=line[0].trim();
+						if(name.equals(nickname)) continue;	//skip self
+						InetAddress ip;
+						try {
+							ip=InetAddress.getByName(line[1]);
+						} catch (UnknownHostException e) {
+							continue;
+						}
+						int port=Integer.parseInt(line[2]);
+						System.out.println(name);
+						otherClients.put(name, new ClientDetails(name, ip, port));
+					}
+				}
 				waitForList=false;
 			}
 		}

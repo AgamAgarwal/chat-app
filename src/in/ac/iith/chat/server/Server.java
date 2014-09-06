@@ -1,5 +1,6 @@
 package in.ac.iith.chat.server;
 
+import in.ac.iith.chat.common.ClientDetails;
 import in.ac.iith.chat.common.Constants;
 
 import java.io.IOException;
@@ -76,6 +77,7 @@ public class Server {
 	public void sendList(InetAddress clientIP, int clientPort) {
 		StringBuilder sb=new StringBuilder();
 		Iterator<ClientDetails> it=onlineClients.values().iterator();
+		sb.append(Constants.Server.LIST_HEADER).append("\n");	//header
 		while(it.hasNext())
 			sb.append(it.next().toString()).append("\n");
 		String reply=sb.toString();

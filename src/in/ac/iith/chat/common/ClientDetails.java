@@ -1,7 +1,6 @@
-package in.ac.iith.chat.server;
+package in.ac.iith.chat.common;
 
 import java.net.InetAddress;
-import java.util.Calendar;
 
 public class ClientDetails {
 	String nickname;
@@ -25,6 +24,7 @@ public class ClientDetails {
 	
 	@Override
 	public String toString() {
-		return nickname+"@"+ipAddress+":"+port;
+		return nickname+":"+ipAddress.getHostAddress()+":"+port;
 	}
 }
+
