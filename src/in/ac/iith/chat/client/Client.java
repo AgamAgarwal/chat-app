@@ -44,7 +44,7 @@ public class Client {
 	 */
 	BufferedReader br;
 	
-	Thread serverReceiver, clientReceiver;
+	Thread serverReceiver, clientReceiver, msgQueueManager;
 	
 	HashMap<String, ClientDetails> otherClients;
 	
@@ -105,6 +105,8 @@ public class Client {
 		serverReceiver.start();
 		clientReceiver=new Thread(new ClientReceiver());
 		clientReceiver.start();
+		msgQueueManager=new Thread(new MsgQueueManager());
+		msgQueueManager.start();
 		promptLoop();
 	}
 	
@@ -131,6 +133,7 @@ public class Client {
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
 					pendingChatAccept=false;
+					msgQueue.clear();	//clear message queue
 				} else {
 					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 				}
@@ -162,12 +165,15 @@ public class Client {
 				int spaceIndex=command.indexOf(' ');
 				String msg;
 				if(spaceIndex==-1) {	//if name is not given with the command 
+					lockTerminal();
 					System.out.println("Type in the message you want to send:");
 					try {
 						msg=br.readLine();
 					} catch (IOException e) {
+						releaseTerminal();
 						continue;
 					}
+					releaseTerminal();
 				} else
 					msg=command.substring(spaceIndex+1);
 				sendMessageToChatPartner(msg);
@@ -181,6 +187,10 @@ public class Client {
 	
 	private void releaseTerminal() {
 		terminalLock=false;
+	}
+	
+	private boolean terminalIsLocked() {
+		return terminalLock;
 	}
 	
 	private void connectToClient(String name) {
@@ -285,7 +295,6 @@ public class Client {
 					continue;
 				}
 				String reply=(new String(data)).trim();
-				System.out.println(reply);
 				if(reply.startsWith(Constants.Client.CHAT_REQUEST)) {
 					if(isCurrentlyChatting()) {	//if already chatting with someone right now
 						sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
@@ -308,6 +317,7 @@ public class Client {
 					ClientDetails cd=otherClients.get(pendingChatRequestPartner);
 					currentChatPartner=new ClientDetails(pendingChatRequestPartner, cd.getIP(), cd.getPort());
 					System.out.println("Request accepted by "+pendingChatRequestPartner);
+					msgQueue.clear();	//clear message queue
 					currentlyChatting=true;
 					pendingChatRequest=false;
 				} else if(reply.startsWith(Constants.Client.CHAT_DENY)) {
@@ -327,8 +337,29 @@ public class Client {
 					if(!parts[1].trim().equals(currentChatPartner.getName()))	//if wrong sender
 						continue;
 					msgQueue.add(parts[2].trim());
-					System.out.println(parts[2]);
 				}
+			}
+		}
+	}
+	
+	private class MsgQueueManager implements Runnable {
+
+		@Override
+		public void run() {
+			while(true) {
+				while(terminalIsLocked() || msgQueue.isEmpty());	//wait till terminal lock is released or any msg arrives
+				String msg=msgQueue.poll();
+				
+				/*
+				 * Checking if msg is null.
+				 * This case may happen due to many threads using the same queue.
+				 * Note that, in the currently implementation, only this thread is
+				 * polling from the queue, so such an error may not occur.
+				 */
+				if(msg==null)
+					continue;
+				
+				System.out.println(currentChatPartner.getName()+" says: "+msg);
 			}
 		}
 		
