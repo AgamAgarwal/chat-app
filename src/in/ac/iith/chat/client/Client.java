@@ -163,25 +163,22 @@ public class Client {
 					connectToClient(name);
 				else
 					System.err.println("Invalid client name, try again!!!");
-			} else if(command.equals(Constants.Client.MESSAGE_COMMAND) || command.startsWith(Constants.Client.MESSAGE_COMMAND+" ")) {
+			} else if(command.equals(Constants.Client.MESSAGE_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
 					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
 					continue;
 				}
-				int spaceIndex=command.indexOf(' ');
-				String msg;
-				if(spaceIndex==-1) {	//if name is not given with the command 
-					lockTerminal();
-					System.out.println("Type in the message you want to send:");
-					try {
-						msg=br.readLine();
-					} catch (IOException e) {
-						releaseTerminal();
-						continue;
-					}
+				String msg; 
+				lockTerminal();
+				sendThroughSocket(Constants.Client.CHAT_TYPING, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());
+				System.out.println("Type in the message you want to send:");
+				try {
+					msg=br.readLine();
+				} catch (IOException e) {
 					releaseTerminal();
-				} else
-					msg=command.substring(spaceIndex+1);
+					continue;
+				}
+				releaseTerminal();
 				sendMessageToChatPartner(msg);
 			} else if(command.equals(Constants.Client.DISCONNECT_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
@@ -369,6 +366,13 @@ public class Client {
 					System.out.println("Disconnected from "+currentChatPartner.getName());
 					currentChatPartner=null;
 					currentlyChatting=false;
+				} else if(reply.equals(Constants.Client.CHAT_TYPING)) {
+					if(!isCurrentlyChatting())
+						continue;	//ignore if not chatting currently
+					if(!verifyClient(packet.getAddress(), currentChatPartner))
+						continue;
+					if(!terminalIsLocked())
+						System.out.println(currentChatPartner.getName()+" is typing...");
 				}
 			}
 		}
