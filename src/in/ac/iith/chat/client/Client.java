@@ -122,8 +122,11 @@ public class Client {
 				command=br.readLine();
 			} catch (IOException e) {
 				System.err.println("Error reading command");
-				if(pendingChatAccept)
+				if(pendingChatAccept) {
 					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
+					pendingChatAccept=false;
+					pendingAcceptClient=null;
+				}
 				continue;
 			}
 			
@@ -135,9 +138,12 @@ public class Client {
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
 					pendingChatAccept=false;
+					pendingAcceptClient=null;
 					msgQueue.clear();	//clear message queue
 				} else {
 					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
+					pendingChatAccept=false;
+					pendingAcceptClient=null;
 				}
 			} else if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
@@ -411,6 +417,9 @@ public class Client {
 	public void shutdown() {
 		if(isCurrentlyChatting()) {
 			disconnectFromClient();
+		}
+		if(pendingChatAccept) {
+			sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 		}
 	}
 }
