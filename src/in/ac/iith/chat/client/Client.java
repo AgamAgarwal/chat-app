@@ -209,6 +209,10 @@ public class Client {
 				disconnectFromClient();
 			} else if(command.equals(Constants.Client.HELP_COMMAND)) {
 				System.out.println(Constants.Client.HELP_TEXT);
+			} else if(command.equals(Constants.Client.EXIT_COMMAND)) {
+				System.out.println("Exiting.");
+				shutdown();
+				System.exit(0);
 			} else {
 				System.out.println("Invalid command. Type 'help' for help text.");
 			}

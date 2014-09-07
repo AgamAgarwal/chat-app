@@ -17,6 +17,7 @@ public final class Constants {
 		public final static String DISCONNECT_COMMAND="bye";
 		public final static String MESSAGE_COMMAND="m";
 		public final static String HELP_COMMAND="help";
+		public final static String EXIT_COMMAND="exit";
 		
 		public final static String CHAT_REQUEST="crq";
 		public final static String CHAT_ACCEPT="acc";
@@ -28,7 +29,8 @@ public final class Constants {
 				"Type '"+CONNECT_COMMAND+" <client_name>' to connect to a client.\n" +
 				"Type '"+MESSAGE_COMMAND+"' to send a message to the connected client.\n" +
 				"Type '"+DISCONNECT_COMMAND+"' to disconnect from the connected client.\n" +
-				"Type '"+HELP_COMMAND+"' to display this message.\n";
+				"Type '"+HELP_COMMAND+"' to display this message.\n" +
+				"Type '"+EXIT_COMMAND+"' to exit.\n";
 	}
 	public final static String HEARTBEAT_ID="hb";
 	public final static String REQUEST_ID="rq";
