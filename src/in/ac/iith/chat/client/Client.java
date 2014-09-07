@@ -186,6 +186,8 @@ public class Client {
 					continue;
 				}
 				disconnectFromClient();
+			} else if(command.equals(Constants.Client.HELP_COMMAND)) {
+				System.out.println(Constants.Client.HELP_TEXT);
 			}
 		}
 	}
