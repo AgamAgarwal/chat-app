@@ -110,7 +110,6 @@ public class Client {
 		String command;
 		while(true) {
 			while(terminalLock);
-			System.out.print("> ");
 			try {
 				command=br.readLine();
 			} catch (IOException e) {
