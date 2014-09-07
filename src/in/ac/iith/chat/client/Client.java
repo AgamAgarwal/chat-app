@@ -99,6 +99,7 @@ public class Client {
 		otherClients=null;
 		heartbeatTimer=new Timer();	//initialize Timer object
 		chatRequestTimeout=new Timer();
+		listRequestTimer=new Timer();
 		currentlyChatting=false;	//initially not chatting with anyone
 		currentChatPartner=null;
 		msgQueue=new LinkedList<String>();
@@ -198,8 +199,8 @@ public class Client {
 					releaseTerminal();
 					continue;
 				}
-				releaseTerminal();
 				sendMessageToChatPartner(msg);
+				releaseTerminal();
 			} else if(command.equals(Constants.Client.DISCONNECT_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
 					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
