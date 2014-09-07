@@ -53,6 +53,15 @@ public class Client {
 	volatile boolean waitForList;
 	
 	/**
+	 * Identifies if there is currently an active chat session or not
+	 */
+	volatile boolean currentlyChatting;
+	
+	volatile boolean terminalLock;
+	
+	volatile ClientDetails currentChatPartner;
+	
+	/**
 	 * Initializes the client with the given nickname
 	 * @param nn nickname
 	 */
@@ -74,6 +83,8 @@ public class Client {
 		br=new BufferedReader(new InputStreamReader(System.in));
 		otherClients=null;
 		heartbeatTimer=new Timer();	//initialize Timer object
+		currentlyChatting=false;	//initially not chatting with anyone
+		currentChatPartner=null;
 	}
 	
 	/**
@@ -125,8 +136,20 @@ public class Client {
 		}
 	}
 	
+	private void lockTerminal() {
+		terminalLock=true;
+	}
+	
+	private void releaseTerminal() {
+		terminalLock=false;
+	}
+	
 	private void connectToClient(String name) {
-		System.out.println("Connecting to "+name);
+		
+	}
+	
+	public boolean isCurrentlyChatting() {
+		return currentlyChatting;
 	}
 	
 	/**
@@ -134,14 +157,14 @@ public class Client {
 	 */
 	private void requestForList() {
 		waitForList=true;
-		sendThroughSocket(Constants.REQUEST_ID, serverSocket);
+		sendThroughSocket(Constants.REQUEST_ID, serverSocket, serverIP, Constants.Server.PORT);
 		while(waitForList);
 	}
 	
-	public boolean sendThroughSocket(String msg, DatagramSocket socket) {
+	public boolean sendThroughSocket(String msg, DatagramSocket socket, InetAddress ip, int port) {
 		byte[] data=msg.getBytes();
 		try {
-			socket.send(new DatagramPacket(data, data.length, serverIP, Constants.Server.PORT));	//send the heartbeat
+			socket.send(new DatagramPacket(data, data.length, ip, port));	//send the heartbeat
 		} catch (IOException e) {
 			System.err.println("Unable to send message");
 			return false;
@@ -156,7 +179,7 @@ public class Client {
 		
 		@Override
 		public void run() {
-			sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket);	//heartbeat data comprises of its nickname
+			sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket, serverIP, Constants.Server.PORT);	//heartbeat data comprises of its nickname
 		}
 	}
 	
@@ -212,7 +235,33 @@ public class Client {
 				}
 				String reply=(new String(data)).trim();
 				if(reply.startsWith(Constants.Client.CHAT_REQUEST)) {
-					//TODO: Check if user is not chatting with someone currently, then directly accept request or ask user for confirmation
+					if(isCurrentlyChatting()) {	//if already chatting with someone right now
+						sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+					} else {
+						String[] parts=reply.split(" ", 2);
+						if(parts.length<2) {	//if name is not present
+							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+							continue;
+						}
+						lockTerminal();
+						System.out.println("User '"+parts[1]+"' wants to chat with you. Accept(y/n)?");
+						char c;
+						try {
+							c=(char)br.read();
+						} catch (IOException e) {
+							System.err.println("Error reading input.");
+							releaseTerminal();
+							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+							continue;
+						}
+						if(c=='y') {
+							sendThroughSocket(Constants.Client.CHAT_ACCEPT, clientSocket, packet.getAddress(), packet.getPort());	//accept the request
+							currentChatPartner=new ClientDetails(parts[1].trim(), packet.getAddress(), packet.getPort());
+							currentlyChatting=true;
+						} else {
+							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+						}
+					}
 				}
 			}
 		}
