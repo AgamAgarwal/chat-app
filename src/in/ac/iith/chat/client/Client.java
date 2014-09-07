@@ -74,7 +74,9 @@ public class Client {
 	 * @param nn nickname
 	 */
 	public Client(String nn) {
-		nickname=nn;	//TODO check if name is valid. If not, throw error
+		if(!nn.matches("[A-Za-z0-9]+"))
+			throw new IllegalArgumentException("Invalid nickname. A nickname can only contain letters and numbers.");
+		nickname=nn;
 		try {
 			serverSocket=new DatagramSocket();	//try to bind the port. Note this is required as it will be needed for if any other client wants to send a message
 			clientSocket=new DatagramSocket();
