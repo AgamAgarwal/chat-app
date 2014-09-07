@@ -8,12 +8,19 @@ public class ClientMain {
 	static Client client;
 	public static void main(String[] args)throws IOException {
 		BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
+		String serverAddress=null;
+		if(args.length==0) {
+			System.out.print("Enter the server address: ");
+			serverAddress=br.readLine();
+		} else {
+			serverAddress=args[0];
+		}
 		String nickname;
 		do {
 			System.out.print("Enter you nickname: ");
 			nickname=br.readLine();
 			try {
-				client=new Client(nickname);
+				client=new Client(nickname, serverAddress);
 				if(client!=null)
 					break;
 			} catch(Exception e) {

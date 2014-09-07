@@ -12,6 +12,7 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.Queue;
 import java.util.Timer;
@@ -39,7 +40,7 @@ public class Client {
 	 */
 	Timer heartbeatTimer;
 	
-	Timer chatRequestTimeout;
+	Timer chatRequestTimeout, listRequestTimer;
 	
 	/**
 	 * Object to get input from user
@@ -77,7 +78,7 @@ public class Client {
 	 * Initializes the client with the given nickname
 	 * @param nn nickname
 	 */
-	public Client(String nn) {
+	public Client(String nn, String serverAddress) {
 		if(!nn.matches("[A-Za-z0-9]+"))
 			throw new IllegalArgumentException("Invalid nickname. A nickname can only contain letters and numbers.");
 		nickname=nn;
@@ -89,7 +90,7 @@ public class Client {
 			System.exit(-1);
 		}
 		try {
-			serverIP=InetAddress.getByName("localhost");	//currently using localhost, will have to change later
+			serverIP=InetAddress.getByName(serverAddress);
 		} catch (UnknownHostException e) {
 			System.out.println("Unknown server");
 			System.exit(-1);
@@ -145,7 +146,7 @@ public class Client {
 			if(pendingChatAccept) {
 				char c=command.charAt(0);
 				if(c=='y') {
-					System.out.println("Accepting request");
+					System.out.println("Request Accepted. Type 'm' to send a message.");
 					sendThroughSocket(Constants.Client.CHAT_ACCEPT, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
@@ -153,6 +154,7 @@ public class Client {
 					pendingAcceptClient=null;
 					msgQueue.clear();	//clear message queue
 				} else {
+					System.out.println("Request Denied.");
 					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 					pendingChatAccept=false;
 					pendingAcceptClient=null;
@@ -206,6 +208,8 @@ public class Client {
 				disconnectFromClient();
 			} else if(command.equals(Constants.Client.HELP_COMMAND)) {
 				System.out.println(Constants.Client.HELP_TEXT);
+			} else {
+				System.out.println("Invalid command. Type 'help' for help text.");
 			}
 		}
 	}
@@ -246,6 +250,7 @@ public class Client {
 		if(currentChatPartner==null)
 			return;
 		sendThroughSocket(Constants.Client.MESSAGE_COMMAND+" "+msg, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send message
+		System.out.println("Message Sent: "+msg);
 	}
 	
 	public boolean isCurrentlyChatting() {
@@ -258,6 +263,7 @@ public class Client {
 	private void requestForList() {
 		waitForList=true;
 		sendThroughSocket(Constants.REQUEST_ID, serverSocket, serverIP, Constants.Server.PORT);
+		listRequestTimer.schedule(new ListRequestTimer(), Constants.Client.LIST_REQUEST_TIMER);
 		while(waitForList);
 	}
 	
@@ -304,12 +310,6 @@ public class Client {
 				}
 				String[] reply=new String(data).split("\n");
 				if(reply[0].equals(Constants.Server.LIST_HEADER)) {
-					if(reply.length<=3) {	//if only this client's name is present
-						System.out.println("Sorry no other clients are online.");
-						waitForList=false;
-						continue;
-					}
-					System.out.println("The following other clients are online:");
 					otherClients=new HashMap<String, ClientDetails>();
 					for(int i=1;i<reply.length;i++) {
 						String[] line=reply[i].split(":");
@@ -318,15 +318,17 @@ public class Client {
 						if(name.equals(nickname)) continue;	//skip self
 						InetAddress ip;
 						try {
-							ip=InetAddress.getByName(line[1].trim());
+							String ipAddr=line[1].trim();
+							if(ipAddr.equals("127.0.0.1"))
+								ip=serverIP;
+							else
+								ip=InetAddress.getByName(line[1].trim());
 						} catch (UnknownHostException e) {
 							continue;
 						}
 						int port=Integer.parseInt(line[2].trim());
-						System.out.println("\t"+name);
 						otherClients.put(name, new ClientDetails(name, ip, port));
 					}
-					waitForList=false;
 				} else if(reply[0].equals(Constants.DUPLICATE_NICKNAME)) {
 					System.out.println(reply[1]);
 					String nn = "$";	//just something
@@ -449,6 +451,25 @@ public class Client {
 			pendingChatRequest=false;
 			pendingChatRequestPartner=null;
 			System.out.println("Request timed out");
+		}
+		
+	}
+	
+	private class ListRequestTimer extends TimerTask {
+
+		@Override
+		public void run() {
+			Iterator<String> it=otherClients.keySet().iterator();
+			if(!it.hasNext()) {
+				System.out.println("Sorry no other clients are online.");
+				waitForList=false;
+				return;
+			}
+			System.out.println("The following other clients are online:");
+			while(it.hasNext()) {
+				System.out.println(it.next());
+			}
+			waitForList=false;
 		}
 		
 	}

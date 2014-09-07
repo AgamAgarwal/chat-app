@@ -10,6 +10,7 @@ public final class Constants {
 	public final class Client {
 		public final static long HEARTBEAT_RATE=1000;	//1000 milliseconds
 		public final static long CHAT_REQUEST_TIMEOUT=10000;
+		public final static long LIST_REQUEST_TIMER=1000;
 		
 		public final static String LIST_COMMAND="l";
 		public final static String CONNECT_COMMAND="c";
