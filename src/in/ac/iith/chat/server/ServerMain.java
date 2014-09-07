@@ -1,6 +1,6 @@
 package in.ac.iith.chat.server;
 
-public class Main {
+public class ServerMain {
 
 	public static void main(String[] args) {
 		Server server=new Server();
