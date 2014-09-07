@@ -18,6 +18,10 @@ public class ClientDetails {
 		return ipAddress;
 	}
 	
+	public int getPort() {
+		return port;
+	}
+	
 	public void updateHeartbeat() {
 		lastHeartbeat=System.currentTimeMillis();
 	}

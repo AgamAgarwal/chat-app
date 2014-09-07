@@ -58,7 +58,6 @@ public class Server {
 	 * @return false if the nickname is already taken by some other client
 	 */
 	public boolean updateClient(String clientName, InetAddress clientIP, int clientPort) {
-		//TODO: currently this just prints the client name. But it should update the time in the client table and return false if name is already taken
 		if(onlineClients.containsKey(clientName)) {
 			ClientDetails cd=onlineClients.get(clientName);
 			if(clientIP.equals(cd.getIP())) {	//if IP address matches

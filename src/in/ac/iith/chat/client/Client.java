@@ -59,7 +59,11 @@ public class Client {
 	
 	volatile boolean terminalLock;
 	
-	volatile ClientDetails currentChatPartner;
+	volatile boolean pendingChatRequest, pendingChatAccept;
+	
+	volatile String pendingChatRequestPartner;
+	
+	volatile ClientDetails currentChatPartner, pendingAcceptClient;
 	
 	/**
 	 * Initializes the client with the given nickname
@@ -105,14 +109,28 @@ public class Client {
 	private void promptLoop() {
 		String command;
 		while(true) {
+			while(terminalLock);
 			System.out.print("> ");
 			try {
 				command=br.readLine();
 			} catch (IOException e) {
 				System.err.println("Error reading command");
+				if(pendingChatAccept)
+					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 				continue;
 			}
-			if(command.equals(Constants.Client.LIST_COMMAND))
+			
+			if(pendingChatAccept) {
+				char c=command.charAt(0);
+				if(c=='y') {
+					System.out.println("Accepting request");
+					sendThroughSocket(Constants.Client.CHAT_ACCEPT+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
+					currentChatPartner=pendingAcceptClient;
+					currentlyChatting=true;
+				} else {
+					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
+				}
+			} else if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
 			else if(command.startsWith(Constants.Client.CONNECT_COMMAND)) {
 				int spaceIndex=command.indexOf(' ');
@@ -145,7 +163,12 @@ public class Client {
 	}
 	
 	private void connectToClient(String name) {
-		
+		ClientDetails cd=otherClients.get(name);
+		if(cd==null)
+			return;
+		sendThroughSocket(Constants.Client.CHAT_REQUEST+" "+nickname, clientSocket, cd.getIP(), cd.getPort());	//deny the request
+		pendingChatRequestPartner=name;
+		//TODO start timer for request timeout
 	}
 	
 	public boolean isCurrentlyChatting() {
@@ -228,40 +251,45 @@ public class Client {
 				byte[] data=new byte[1024*1024];
 				DatagramPacket packet=new DatagramPacket(data, data.length);
 				try {
-					serverSocket.receive(packet);
+					clientSocket.receive(packet);
 				} catch(IOException e) {
 					System.err.println("Error while receiving message from server");
 					continue;
 				}
 				String reply=(new String(data)).trim();
+				System.out.println(reply);
 				if(reply.startsWith(Constants.Client.CHAT_REQUEST)) {
 					if(isCurrentlyChatting()) {	//if already chatting with someone right now
-						sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+						sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
 					} else {
 						String[] parts=reply.split(" ", 2);
 						if(parts.length<2) {	//if name is not present
-							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+							sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
 							continue;
 						}
-						lockTerminal();
 						System.out.println("User '"+parts[1]+"' wants to chat with you. Accept(y/n)?");
-						char c;
-						try {
-							c=(char)br.read();
-						} catch (IOException e) {
-							System.err.println("Error reading input.");
-							releaseTerminal();
-							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
-							continue;
-						}
-						if(c=='y') {
-							sendThroughSocket(Constants.Client.CHAT_ACCEPT, clientSocket, packet.getAddress(), packet.getPort());	//accept the request
-							currentChatPartner=new ClientDetails(parts[1].trim(), packet.getAddress(), packet.getPort());
-							currentlyChatting=true;
-						} else {
-							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
-						}
+						pendingAcceptClient=new ClientDetails(parts[1], packet.getAddress(), packet.getPort());
+						pendingChatAccept=true;
 					}
+				} else if(reply.startsWith(Constants.Client.CHAT_ACCEPT)) {
+					if(!pendingChatRequest)	//ignore if no pending chat request
+						continue;
+					String[] parts=reply.split(" ", 2);
+					if(!parts[1].trim().equals(pendingChatRequestPartner))
+						continue;
+					ClientDetails cd=otherClients.get(pendingChatRequestPartner);
+					currentChatPartner=new ClientDetails(pendingChatRequestPartner, cd.getIP(), cd.getPort());
+					System.out.println("Request accepted by "+pendingChatRequestPartner);
+					currentlyChatting=true;
+					pendingChatRequest=false;
+				} else if(reply.startsWith(Constants.Client.CHAT_DENY)) {
+					if(!pendingChatRequest)	//ignore if no pending chat request
+						continue;
+					String[] parts=reply.split(" ", 2);
+					if(!parts[1].trim().equals(pendingChatRequestPartner))
+						continue;
+					System.out.println("Request denied by "+pendingChatRequestPartner);
+					pendingChatRequest=false;
 				}
 			}
 		}
