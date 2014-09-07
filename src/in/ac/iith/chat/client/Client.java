@@ -141,7 +141,11 @@ public class Client {
 				}
 			} else if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
-			else if(command.startsWith(Constants.Client.CONNECT_COMMAND)) {
+			else if(command.equals(Constants.Client.CONNECT_COMMAND) || command.startsWith(Constants.Client.CONNECT_COMMAND+" ")) {
+				if(isCurrentlyChatting()) {
+					System.out.println("You are already connected to someone. Please disconnect first. Type 'bye'");
+					continue;
+				}
 				int spaceIndex=command.indexOf(' ');
 				String name;
 				if(spaceIndex==-1) {	//if name is not given with the command 
@@ -159,7 +163,7 @@ public class Client {
 					connectToClient(name);
 				else
 					System.err.println("Invalid client name, try again!!!");
-			} else if(command.startsWith(Constants.Client.MESSAGE_COMMAND)) {
+			} else if(command.equals(Constants.Client.MESSAGE_COMMAND) || command.startsWith(Constants.Client.MESSAGE_COMMAND+" ")) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
 					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
 					continue;
@@ -179,6 +183,12 @@ public class Client {
 				} else
 					msg=command.substring(spaceIndex+1);
 				sendMessageToChatPartner(msg);
+			} else if(command.equals(Constants.Client.DISCONNECT_COMMAND)) {
+				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
+					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
+					continue;
+				}
+				disconnectFromClient();
 			}
 		}
 	}
@@ -203,6 +213,15 @@ public class Client {
 		pendingChatRequestPartner=name;
 		pendingChatRequest=true;
 		//TODO start timer for request timeout
+	}
+	
+	private void disconnectFromClient() {
+		if(currentChatPartner==null)
+			return;
+		sendThroughSocket(Constants.Client.CHAT_DISCONNECT+" "+nickname, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send disconnect request
+		currentChatPartner=null;
+		currentlyChatting=false;
+		
 	}
 	
 	private void sendMessageToChatPartner(String msg) {
@@ -339,6 +358,17 @@ public class Client {
 					if(!parts[1].trim().equals(currentChatPartner.getName()))	//if wrong sender
 						continue;
 					msgQueue.add(parts[2].trim());
+				} else if(reply.startsWith(Constants.Client.CHAT_DISCONNECT)) {
+					if(!isCurrentlyChatting())
+						continue;	//ignore if not chatting currently
+					String[] parts=reply.split(" ", 2);
+					if(parts.length<2)
+						continue;
+					if(!parts[1].trim().equals(currentChatPartner.getName()))
+						continue;
+					System.out.println("Disconnected from "+currentChatPartner.getName());
+					currentChatPartner=null;
+					currentlyChatting=false;
 				}
 			}
 		}
