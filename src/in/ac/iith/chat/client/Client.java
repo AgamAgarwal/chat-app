@@ -123,7 +123,7 @@ public class Client {
 			} catch (IOException e) {
 				System.err.println("Error reading command");
 				if(pendingChatAccept)
-					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
+					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 				continue;
 			}
 			
@@ -131,13 +131,13 @@ public class Client {
 				char c=command.charAt(0);
 				if(c=='y') {
 					System.out.println("Accepting request");
-					sendThroughSocket(Constants.Client.CHAT_ACCEPT+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
+					sendThroughSocket(Constants.Client.CHAT_ACCEPT, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
 					pendingChatAccept=false;
 					msgQueue.clear();	//clear message queue
 				} else {
-					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
+					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 				}
 			} else if(command.equals(Constants.Client.LIST_COMMAND))
 				requestForList();
@@ -218,7 +218,7 @@ public class Client {
 	private void disconnectFromClient() {
 		if(currentChatPartner==null)
 			return;
-		sendThroughSocket(Constants.Client.CHAT_DISCONNECT+" "+nickname, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send disconnect request
+		sendThroughSocket(Constants.Client.CHAT_DISCONNECT, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send disconnect request
 		currentChatPartner=null;
 		currentlyChatting=false;
 		
@@ -227,7 +227,7 @@ public class Client {
 	private void sendMessageToChatPartner(String msg) {
 		if(currentChatPartner==null)
 			return;
-		sendThroughSocket(Constants.Client.MESSAGE_COMMAND+" "+nickname+" "+msg, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send message
+		sendThroughSocket(Constants.Client.MESSAGE_COMMAND+" "+msg, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send message
 	}
 	
 	public boolean isCurrentlyChatting() {
@@ -252,6 +252,12 @@ public class Client {
 			return false;
 		}
 		return true;
+	}
+	
+	private boolean verifyClient(InetAddress ip, ClientDetails cd) {
+		if(cd==null || ip==null)
+			return false;
+		return ip.equals(cd.getIP());
 	}
 	
 	/**
@@ -318,53 +324,47 @@ public class Client {
 				String reply=(new String(data)).trim();
 				if(reply.startsWith(Constants.Client.CHAT_REQUEST)) {
 					if(isCurrentlyChatting()) {	//if already chatting with someone right now
-						sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+						sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
 					} else {
 						String[] parts=reply.split(" ", 2);
 						if(parts.length<2) {	//if name is not present
-							sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
+							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
 							continue;
 						}
 						System.out.println("User '"+parts[1]+"' wants to chat with you. Accept(y/n)?");
 						pendingAcceptClient=new ClientDetails(parts[1], packet.getAddress(), packet.getPort());
 						pendingChatAccept=true;
 					}
-				} else if(reply.startsWith(Constants.Client.CHAT_ACCEPT)) {
+				} else if(reply.equals(Constants.Client.CHAT_ACCEPT)) {
 					if(!pendingChatRequest)	//ignore if no pending chat request
 						continue;
-					String[] parts=reply.split(" ", 2);
-					if(!parts[1].trim().equals(pendingChatRequestPartner))
+					if(!verifyClient(packet.getAddress(), otherClients.get(pendingChatRequestPartner)))
 						continue;
-					ClientDetails cd=otherClients.get(pendingChatRequestPartner);
-					currentChatPartner=new ClientDetails(pendingChatRequestPartner, cd.getIP(), cd.getPort());
+					currentChatPartner=otherClients.get(pendingChatRequestPartner);
 					System.out.println("Request accepted by "+pendingChatRequestPartner);
 					msgQueue.clear();	//clear message queue
 					currentlyChatting=true;
 					pendingChatRequest=false;
-				} else if(reply.startsWith(Constants.Client.CHAT_DENY)) {
+				} else if(reply.equals(Constants.Client.CHAT_DENY)) {
 					if(!pendingChatRequest)	//ignore if no pending chat request
 						continue;
-					String[] parts=reply.split(" ", 2);
-					if(!parts[1].trim().equals(pendingChatRequestPartner))
+					if(!verifyClient(packet.getAddress(), otherClients.get(pendingChatRequestPartner)))
 						continue;
 					System.out.println("Request denied by "+pendingChatRequestPartner);
 					pendingChatRequest=false;
-				} else if(reply.startsWith(Constants.Client.MESSAGE_COMMAND)) {
+				} else if(reply.startsWith(Constants.Client.MESSAGE_COMMAND+" ")) {
 					if(!isCurrentlyChatting())
 						continue;	//discard if not currently chatting with anyone
-					String[] parts=reply.split(" ", 3);
-					if(parts.length<3)	//if invalid
+					String[] parts=reply.split(" ", 2);
+					if(parts.length<2)	//if invalid
 						continue;
-					if(!parts[1].trim().equals(currentChatPartner.getName()))	//if wrong sender
+					if(!verifyClient(packet.getAddress(), currentChatPartner))	//if wrong sender
 						continue;
-					msgQueue.add(parts[2].trim());
-				} else if(reply.startsWith(Constants.Client.CHAT_DISCONNECT)) {
+					msgQueue.add(parts[1].trim());
+				} else if(reply.equals(Constants.Client.CHAT_DISCONNECT)) {
 					if(!isCurrentlyChatting())
 						continue;	//ignore if not chatting currently
-					String[] parts=reply.split(" ", 2);
-					if(parts.length<2)
-						continue;
-					if(!parts[1].trim().equals(currentChatPartner.getName()))
+					if(!verifyClient(packet.getAddress(), currentChatPartner))
 						continue;
 					System.out.println("Disconnected from "+currentChatPartner.getName());
 					currentChatPartner=null;

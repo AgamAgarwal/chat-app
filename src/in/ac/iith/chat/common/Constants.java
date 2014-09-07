@@ -18,6 +18,7 @@ public final class Constants {
 		public final static String CHAT_ACCEPT="acc";
 		public final static String CHAT_DENY="den";
 		public final static String CHAT_DISCONNECT="fin";
+		public final static String CHAT_TYPING="typ";
 	}
 	public final static String HEARTBEAT_ID="hb";
 	public final static String REQUEST_ID="rq";
