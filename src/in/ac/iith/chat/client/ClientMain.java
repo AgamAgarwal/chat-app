@@ -5,10 +5,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 public class ClientMain {
+	static Client client;
 	public static void main(String[] args)throws IOException {
 		BufferedReader br=new BufferedReader(new InputStreamReader(System.in));
 		String nickname;
-		Client client=null;
 		do {
 			System.out.print("Enter you nickname: ");
 			nickname=br.readLine();
@@ -20,6 +20,14 @@ public class ClientMain {
 				System.err.println(e.getMessage());
 			}
 		}while(true);
+		Runtime.getRuntime().addShutdownHook(new ShutdownHook());
 		client.start();
+	}
+	
+	private static class ShutdownHook extends Thread {
+		@Override
+		public void run() {
+			client.shutdown();
+		}
 	}
 }

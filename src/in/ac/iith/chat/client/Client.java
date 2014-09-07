@@ -398,6 +398,11 @@ public class Client {
 				System.out.println(currentChatPartner.getName()+" says: "+msg);
 			}
 		}
-		
+	}
+	
+	public void shutdown() {
+		if(isCurrentlyChatting()) {
+			disconnectFromClient();
+		}
 	}
 }
