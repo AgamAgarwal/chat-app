@@ -31,4 +31,7 @@ public final class Constants {
 	}
 	public final static String HEARTBEAT_ID="hb";
 	public final static String REQUEST_ID="rq";
+	
+	public final static String DUPLICATE_NICKNAME = "Duplicate";
+	public final static String ACCEPTED_NICKNAME = "Nickname accepted";
 }

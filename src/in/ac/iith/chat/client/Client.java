@@ -65,6 +65,8 @@ public class Client {
 	
 	volatile boolean pendingChatRequest, pendingChatAccept;
 	
+	volatile boolean nicknameAccepted;
+	
 	volatile String pendingChatRequestPartner;
 	
 	volatile ClientDetails currentChatPartner, pendingAcceptClient;
@@ -105,13 +107,20 @@ public class Client {
 	 * Starts all the threads for the client
 	 */
 	public void start() {
-		heartbeatTimer.scheduleAtFixedRate(new HeartbeatTask(), 0, Constants.Client.HEARTBEAT_RATE);	//schedule heartbeat at regular intervals
 		serverReceiver=new Thread(new ServerReceiver());
 		serverReceiver.start();
 		clientReceiver=new Thread(new ClientReceiver());
 		clientReceiver.start();
 		msgQueueManager=new Thread(new MsgQueueManager());
 		msgQueueManager.start();
+		
+		nicknameAccepted=false;
+		
+		//send a single heartbeat
+		sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket, serverIP, Constants.Server.PORT);
+		
+		while(!nicknameAccepted);	//wait till nickname is accepted
+		
 		promptLoop();
 	}
 	
@@ -318,6 +327,32 @@ public class Client {
 						otherClients.put(name, new ClientDetails(name, ip, port));
 					}
 					waitForList=false;
+				} else if(reply[0].equals(Constants.DUPLICATE_NICKNAME)) {
+					System.out.println(reply[1]);
+					String nn = "$";	//just something
+					while(true)
+					{
+						System.out.print("Enter another nick name: ");
+						try {
+							nn = br.readLine();
+						} catch(Exception e) {
+							System.out.println("Error reading input from the console.");
+						}
+						if(!nn.matches("[A-Za-z0-9]+"))
+							System.err.println("Invalid nickname. A nickname can only contain letters and numbers.");
+						else {
+							nickname = nn;
+							break;
+						}
+					}
+					
+					//try this name again
+					sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket, serverIP, Constants.Server.PORT);
+				}
+				else if(reply[0].trim().equals(Constants.ACCEPTED_NICKNAME)){
+					System.out.println("Connection established. Type 'help' to get help text.");
+					heartbeatTimer.scheduleAtFixedRate(new HeartbeatTask(), 0, Constants.Client.HEARTBEAT_RATE);
+					nicknameAccepted=true;
 				}
 			}
 		}
