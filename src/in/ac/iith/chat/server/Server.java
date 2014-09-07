@@ -64,18 +64,31 @@ public class Server {
 	 * @param clientIP
 	 * @return false if the nickname is already taken by some other client
 	 */
-	public boolean updateClient(String clientName, InetAddress clientIP, int clientPort) {
+	public boolean updateClient(String clientName, InetAddress clientIP, int clientPort, int serverPort) {
 		if(onlineClients.containsKey(clientName)) {
 			ClientDetails cd=onlineClients.get(clientName);
-			if(clientIP.equals(cd.getIP())) {	//if IP address matches
+			if(clientIP.equals(cd.getIP()) && clientPort==cd.getPort()) {	//if IP address matches
 				cd.updateHeartbeat();
 				//System.out.println(cd.toString());
 				return true;
-			} else	//nickname already taken by some other client(checked using IP address)
+			} else {	//nickname already taken by some other client(checked using IP address)
+				System.out.println("Duplicate nickname found.");
 				return false;
+			}
 		} else {	//if new client
 			onlineClients.put(clientName, new ClientDetails(clientName, clientIP, clientPort));
 			System.out.println("Added new client:"+clientName);
+
+			String reply = Constants.ACCEPTED_NICKNAME;
+			byte data[] = reply.getBytes();
+			try {
+				serverSocket.send(new DatagramPacket(data, data.length, clientIP, serverPort));
+				System.out.println("Data Sent.");
+			} catch (IOException e) {
+				System.err.println("Unable to send accepted message to client at "+clientIP.getHostAddress()+":"+clientPort);
+			}
+
+
 			return true;
 		}
 	}
@@ -116,7 +129,24 @@ public class Server {
 					if(dataString[0].startsWith(Constants.REQUEST_ID)) {
 						sendList(packet.getAddress(), packet.getPort());
 					} else if(dataString[0].startsWith(Constants.HEARTBEAT_ID)) {	//if it's a heartbeat
-						updateClient(dataString[2], packet.getAddress(), Integer.parseInt(dataString[1]));	//update the time of last heartbeat of the client
+
+						/* Changes here. */
+						boolean success = updateClient(dataString[2], packet.getAddress(), Integer.parseInt(dataString[1]), packet.getPort());	//update the time of last heartbeat of the client
+
+						if(!success){	// in case of duplicate nickname.
+							System.out.print("Sending error message to "+packet.getAddress());
+							String reply = Constants.DUPLICATE_NICKNAME;
+							reply += "\nThe nickname has already been taken. Try another nickname.";
+
+							data=reply.getBytes();
+							try {
+								serverSocket.send(new DatagramPacket(data, data.length, packet.getAddress(), packet.getPort()));
+							} catch (IOException e) {
+								System.err.println("Unable to send duplicate nickname error to "+packet.getAddress().getHostAddress()+":"+packet.getPort());
+							}
+						}
+
+						/* Changes end */
 					}
 				} catch(Exception e) {
 					System.err.println("Invalid request from client at "+packet.getAddress().getHostAddress());
