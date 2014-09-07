@@ -12,6 +12,8 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Queue;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -65,6 +67,8 @@ public class Client {
 	
 	volatile ClientDetails currentChatPartner, pendingAcceptClient;
 	
+	Queue<String> msgQueue;
+	
 	/**
 	 * Initializes the client with the given nickname
 	 * @param nn nickname
@@ -89,6 +93,7 @@ public class Client {
 		heartbeatTimer=new Timer();	//initialize Timer object
 		currentlyChatting=false;	//initially not chatting with anyone
 		currentChatPartner=null;
+		msgQueue=new LinkedList<String>();
 	}
 	
 	/**
@@ -109,7 +114,6 @@ public class Client {
 	private void promptLoop() {
 		String command;
 		while(true) {
-			while(terminalLock);
 			try {
 				command=br.readLine();
 			} catch (IOException e) {
@@ -126,6 +130,7 @@ public class Client {
 					sendThroughSocket(Constants.Client.CHAT_ACCEPT+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
+					pendingChatAccept=false;
 				} else {
 					sendThroughSocket(Constants.Client.CHAT_DENY+" "+nickname, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 				}
@@ -149,6 +154,23 @@ public class Client {
 					connectToClient(name);
 				else
 					System.err.println("Invalid client name, try again!!!");
+			} else if(command.startsWith(Constants.Client.MESSAGE_COMMAND)) {
+				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
+					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
+					continue;
+				}
+				int spaceIndex=command.indexOf(' ');
+				String msg;
+				if(spaceIndex==-1) {	//if name is not given with the command 
+					System.out.println("Type in the message you want to send:");
+					try {
+						msg=br.readLine();
+					} catch (IOException e) {
+						continue;
+					}
+				} else
+					msg=command.substring(spaceIndex+1);
+				sendMessageToChatPartner(msg);
 			}
 		}
 	}
@@ -165,9 +187,16 @@ public class Client {
 		ClientDetails cd=otherClients.get(name);
 		if(cd==null)
 			return;
-		sendThroughSocket(Constants.Client.CHAT_REQUEST+" "+nickname, clientSocket, cd.getIP(), cd.getPort());	//deny the request
+		sendThroughSocket(Constants.Client.CHAT_REQUEST+" "+nickname, clientSocket, cd.getIP(), cd.getPort());	//send chat request
 		pendingChatRequestPartner=name;
+		pendingChatRequest=true;
 		//TODO start timer for request timeout
+	}
+	
+	private void sendMessageToChatPartner(String msg) {
+		if(currentChatPartner==null)
+			return;
+		sendThroughSocket(Constants.Client.MESSAGE_COMMAND+" "+nickname+" "+msg, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send message
 	}
 	
 	public boolean isCurrentlyChatting() {
@@ -289,6 +318,16 @@ public class Client {
 						continue;
 					System.out.println("Request denied by "+pendingChatRequestPartner);
 					pendingChatRequest=false;
+				} else if(reply.startsWith(Constants.Client.MESSAGE_COMMAND)) {
+					if(!isCurrentlyChatting())
+						continue;	//discard if not currently chatting with anyone
+					String[] parts=reply.split(" ", 3);
+					if(parts.length<3)	//if invalid
+						continue;
+					if(!parts[1].trim().equals(currentChatPartner.getName()))	//if wrong sender
+						continue;
+					msgQueue.add(parts[2].trim());
+					System.out.println(parts[2]);
 				}
 			}
 		}

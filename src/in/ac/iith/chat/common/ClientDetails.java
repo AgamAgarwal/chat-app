@@ -14,6 +14,10 @@ public class ClientDetails {
 		updateHeartbeat();
 	}
 	
+	public String getName() {
+		return nickname;
+	}
+	
 	public InetAddress getIP() {
 		return ipAddress;
 	}
