@@ -1,12 +1,12 @@
 Client
 -sends regular heart-beats to server, to notify that it is online.		Done
 -requests server for list of other online clients.		Done
--can directly send message to other clients, after knowing their IP address
+-can directly send message to other clients, after knowing their IP address		Done
 -if the client disconnects suddenly, other things and connections shouldn't be affected.
 
 Server
 -maintains list of online clients using the received heart-beats. Considers them off-line, if missed last 3-5 beats.
--responds to clients request by replying with a list of all the online clients along with their IP address and nicknames  
+-responds to clients request by replying with a list of all the online clients along with their IP address and nicknames		Done
 -When a new client joins, it checks list of currently clients if the nickname is free. Responds accordingly.
 
 Decisions

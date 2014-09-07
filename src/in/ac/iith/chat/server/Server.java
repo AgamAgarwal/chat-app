@@ -10,6 +10,9 @@ import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Server {
 	
@@ -28,6 +31,8 @@ public class Server {
 	 */
 	Thread heartbeatReceiver;
 	
+	Timer clientListCheckerTimer;
+	
 	/**
 	 * Constructor to open the Datagram Socket and initialize the clients hashmap
 	 */
@@ -40,6 +45,7 @@ public class Server {
 			e.printStackTrace();
 		}
 		onlineClients=new HashMap<String, ClientDetails>();	//initialize hashmap
+		clientListCheckerTimer=new Timer();
 	}
 	
 	/**
@@ -49,6 +55,7 @@ public class Server {
 		System.out.println("The server is running now.");
 		heartbeatReceiver=new Thread(new HeartbeatReceiver());
 		heartbeatReceiver.start();
+		clientListCheckerTimer.scheduleAtFixedRate(new ClientListChecker(), 0, Constants.Server.CLIENT_CHECK_RATE);
 	}
 	
 	/**
@@ -115,6 +122,21 @@ public class Server {
 					System.err.println("Invalid request from client at "+packet.getAddress().getHostAddress());
 				}
 				//TODO: use return value of updateClient() to respond to the client if the nickname has already been taken
+			}
+		}
+	}
+	
+	private class ClientListChecker extends TimerTask {
+		@Override
+		public void run() {
+			Iterator<Map.Entry<String, ClientDetails>> it=onlineClients.entrySet().iterator();
+			long currentTime=System.currentTimeMillis();
+			while(it.hasNext()) {
+				Map.Entry<String, ClientDetails> entry=it.next();
+				if(currentTime-entry.getValue().getLastHeartbeat()>Constants.Server.CLIENT_EXPIRE_TIME) {
+					System.out.println(entry.getValue().getName()+" timed out.");
+					it.remove();
+				}
 			}
 		}
 		

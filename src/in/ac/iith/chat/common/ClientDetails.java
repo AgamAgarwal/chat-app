@@ -30,6 +30,10 @@ public class ClientDetails {
 		lastHeartbeat=System.currentTimeMillis();
 	}
 	
+	public long getLastHeartbeat() {
+		return lastHeartbeat;
+	}
+	
 	@Override
 	public String toString() {
 		return nickname+":"+ipAddress.getHostAddress()+":"+port;
