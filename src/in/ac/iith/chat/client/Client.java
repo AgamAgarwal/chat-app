@@ -285,6 +285,12 @@ public class Client {
 				}
 				String[] reply=new String(data).split("\n");
 				if(reply[0].equals(Constants.Server.LIST_HEADER)) {
+					if(reply.length<=3) {	//if only this client's name is present
+						System.out.println("Sorry no other clients are online.");
+						waitForList=false;
+						continue;
+					}
+					System.out.println("The following other clients are online:");
 					otherClients=new HashMap<String, ClientDetails>();
 					for(int i=1;i<reply.length;i++) {
 						String[] line=reply[i].split(":");
@@ -298,11 +304,11 @@ public class Client {
 							continue;
 						}
 						int port=Integer.parseInt(line[2].trim());
-						System.out.println(name);
+						System.out.println("\t"+name);
 						otherClients.put(name, new ClientDetails(name, ip, port));
 					}
+					waitForList=false;
 				}
-				waitForList=false;
 			}
 		}
 	}
