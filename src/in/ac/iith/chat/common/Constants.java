@@ -8,7 +8,9 @@ public final class Constants {
 		public final static long CLIENT_CHECK_RATE=1000;	//1000 milliseconds
 	}
 	public final class Client {
-		public final static int HEARTBEAT_RATE=1000;	//1000 milliseconds
+		public final static long HEARTBEAT_RATE=1000;	//1000 milliseconds
+		public final static long CHAT_REQUEST_TIMEOUT=10000;
+		
 		public final static String LIST_COMMAND="l";
 		public final static String CONNECT_COMMAND="c";
 		public final static String DISCONNECT_COMMAND="bye";

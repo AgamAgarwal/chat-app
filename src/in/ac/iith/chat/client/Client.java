@@ -39,6 +39,8 @@ public class Client {
 	 */
 	Timer heartbeatTimer;
 	
+	Timer chatRequestTimeout;
+	
 	/**
 	 * Object to get input from user
 	 */
@@ -93,6 +95,7 @@ public class Client {
 		br=new BufferedReader(new InputStreamReader(System.in));
 		otherClients=null;
 		heartbeatTimer=new Timer();	//initialize Timer object
+		chatRequestTimeout=new Timer();
 		currentlyChatting=false;	//initially not chatting with anyone
 		currentChatPartner=null;
 		msgQueue=new LinkedList<String>();
@@ -217,7 +220,8 @@ public class Client {
 		sendThroughSocket(Constants.Client.CHAT_REQUEST+" "+nickname, clientSocket, cd.getIP(), cd.getPort());	//send chat request
 		pendingChatRequestPartner=name;
 		pendingChatRequest=true;
-		//TODO start timer for request timeout
+		System.out.println("Trying to connect to "+name);
+		chatRequestTimeout.schedule(new ChatRequestTimeout(), Constants.Client.CHAT_REQUEST_TIMEOUT);
 	}
 	
 	private void disconnectFromClient() {
@@ -356,13 +360,20 @@ public class Client {
 					msgQueue.clear();	//clear message queue
 					currentlyChatting=true;
 					pendingChatRequest=false;
+					pendingChatRequestPartner=null;
 				} else if(reply.equals(Constants.Client.CHAT_DENY)) {
+					if(pendingChatAccept) {
+						pendingChatAccept=false;
+						pendingAcceptClient=null;
+						System.out.println("Request timed out.");
+					}
 					if(!pendingChatRequest)	//ignore if no pending chat request
 						continue;
 					if(!verifyClient(packet.getAddress(), otherClients.get(pendingChatRequestPartner)))
 						continue;
 					System.out.println("Request denied by "+pendingChatRequestPartner);
 					pendingChatRequest=false;
+					pendingChatRequestPartner=null;
 				} else if(reply.startsWith(Constants.Client.MESSAGE_COMMAND+" ")) {
 					if(!isCurrentlyChatting())
 						continue;	//discard if not currently chatting with anyone
@@ -390,6 +401,21 @@ public class Client {
 				}
 			}
 		}
+	}
+	
+	private class ChatRequestTimeout extends TimerTask {
+
+		@Override
+		public void run() {
+			if(!pendingChatRequest)
+				return;
+			ClientDetails cd=otherClients.get(pendingChatRequestPartner);
+			sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, cd.getIP(), cd.getPort());	//deny the request
+			pendingChatRequest=false;
+			pendingChatRequestPartner=null;
+			System.out.println("Request timed out");
+		}
+		
 	}
 	
 	private class MsgQueueManager implements Runnable {
