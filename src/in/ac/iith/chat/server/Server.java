@@ -86,7 +86,6 @@ public class Server {
 			ClientDetails cd=onlineClients.get(clientName);
 			if(clientIP.equals(cd.getIP()) && clientPort==cd.getPort()) {	//if IP address matches
 				cd.updateHeartbeat();
-				//System.out.println(cd.toString());
 				return true;
 			} else	//nickname already taken by some other client(checked using IP address)
 				return false;
