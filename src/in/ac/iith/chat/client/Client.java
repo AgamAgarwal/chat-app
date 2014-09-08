@@ -160,11 +160,16 @@ public class Client {
 					pendingChatAccept=false;
 					pendingAcceptClient=null;
 				}
-			} else if(command.equals(Constants.Client.LIST_COMMAND))
+			} else if(command.equals(Constants.Client.LIST_COMMAND)) {
 				requestForList();
+			}
 			else if(command.equals(Constants.Client.CONNECT_COMMAND) || command.startsWith(Constants.Client.CONNECT_COMMAND+" ")) {
+				if(otherClients==null) {
+					System.out.println("\nPlease type '"+Constants.Client.LIST_COMMAND+"' first to get the list of online clients.");
+					continue;
+				}
 				if(isCurrentlyChatting()) {
-					System.out.println("\nYou are already connected to someone. Please disconnect first. Type 'bye'");
+					System.out.println("\nYou are already connected to someone. Please disconnect first. Type '"+Constants.Client.DISCONNECT_COMMAND+"'");
 					continue;
 				}
 				int spaceIndex=command.indexOf(' ');
@@ -201,8 +206,14 @@ public class Client {
 				}
 				if(msg.trim().length()==0)
 					System.out.println("Please enter some message. Type '"+Constants.Client.MESSAGE_COMMAND+"' to send a message.");
-				else
-					sendMessageToChatPartner(msg);
+				else {
+					int l=msg.length(), i=0;
+					while(i<l) {
+						int x=(l-i)<Constants.Client.MAX_MSG_SIZE?(l-i):Constants.Client.MAX_MSG_SIZE;
+						sendMessageToChatPartner(msg.substring(i, i+x));
+						i+=x;
+					}
+				}
 				releaseTerminal();
 			} else if(command.equals(Constants.Client.DISCONNECT_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
@@ -217,7 +228,7 @@ public class Client {
 				shutdown();
 				System.exit(0);
 			} else {
-				System.out.println("\nInvalid command. Type 'help' for help text.");
+				System.out.println("\nInvalid command. Type '"+Constants.Client.HELP_COMMAND+"' for help text.");
 			}
 		}
 	}

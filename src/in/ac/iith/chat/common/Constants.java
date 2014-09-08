@@ -14,6 +14,8 @@ public final class Constants {
 		public final static long CHAT_REQUEST_TIMEOUT=10000;
 		public final static long LIST_REQUEST_TIMER=1000;
 		
+		public final static int MAX_MSG_SIZE=400;
+		
 		public final static String LIST_COMMAND="l";
 		public final static String CONNECT_COMMAND="c";
 		public final static String DISCONNECT_COMMAND="bye";
