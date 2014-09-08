@@ -6,6 +6,8 @@ public final class Constants {
 		public final static String LIST_HEADER="list";
 		public final static long CLIENT_EXPIRE_TIME=5000;	//5000 milliseconds
 		public final static long CLIENT_CHECK_RATE=1000;	//1000 milliseconds
+		
+		public final static String EXIT_COMMAND="exit";
 	}
 	public final class Client {
 		public final static long HEARTBEAT_RATE=1000;	//1000 milliseconds

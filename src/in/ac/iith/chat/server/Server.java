@@ -3,7 +3,9 @@ package in.ac.iith.chat.server;
 import in.ac.iith.chat.common.ClientDetails;
 import in.ac.iith.chat.common.Constants;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
@@ -33,6 +35,8 @@ public class Server {
 	
 	Timer clientListCheckerTimer;
 	
+	BufferedReader br;
+	
 	/**
 	 * Constructor to open the Datagram Socket and initialize the clients hashmap
 	 */
@@ -46,17 +50,29 @@ public class Server {
 		}
 		onlineClients=new HashMap<String, ClientDetails>();	//initialize hashmap
 		clientListCheckerTimer=new Timer();
+		br=new BufferedReader(new InputStreamReader(System.in));
 	}
 	
 	/**
 	 * Starts all the required threads of the server
 	 */
 	public void start() {
-		System.out.println("The server is running now.");
+		System.out.println("The server is running now. Type '"+Constants.Server.EXIT_COMMAND+"' to exit the server.");
 		heartbeatReceiver=new Thread(new HeartbeatReceiver());
 		heartbeatReceiver.start();
 		clientListCheckerTimer.scheduleAtFixedRate(new ClientListChecker(), 0, Constants.Server.CLIENT_CHECK_RATE);
-		
+		String command="";
+		while(true) {
+			try {
+				command=br.readLine();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+			if(command.equals(Constants.Server.EXIT_COMMAND)) {
+				System.out.println("Exiting");
+				System.exit(0);
+			}
+		}
 	}
 	
 	/**
