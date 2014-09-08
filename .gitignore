@@ -1,2 +1,16 @@
 #Compiled class files
 *.class
+
+#Java archives
+*.jar
+
+#Other archives
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+
+#PDF files
+*.pdf
+*.dvi
+
