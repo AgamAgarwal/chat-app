@@ -56,6 +56,7 @@ public class Server {
 		heartbeatReceiver=new Thread(new HeartbeatReceiver());
 		heartbeatReceiver.start();
 		clientListCheckerTimer.scheduleAtFixedRate(new ClientListChecker(), 0, Constants.Server.CLIENT_CHECK_RATE);
+		
 	}
 	
 	/**

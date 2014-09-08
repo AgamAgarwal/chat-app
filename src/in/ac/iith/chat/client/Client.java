@@ -147,7 +147,7 @@ public class Client {
 			if(pendingChatAccept) {
 				char c=command.charAt(0);
 				if(c=='y') {
-					System.out.println("Request Accepted. Type 'm' to send a message.");
+					System.out.println("\nRequest Accepted. Type 'm' to send a message.");
 					sendThroughSocket(Constants.Client.CHAT_ACCEPT, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//accept the request
 					currentChatPartner=pendingAcceptClient;
 					currentlyChatting=true;
@@ -155,7 +155,7 @@ public class Client {
 					pendingAcceptClient=null;
 					msgQueue.clear();	//clear message queue
 				} else {
-					System.out.println("Request Denied.");
+					System.out.println("\nRequest Denied.");
 					sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, pendingAcceptClient.getIP(), pendingAcceptClient.getPort());	//deny the request
 					pendingChatAccept=false;
 					pendingAcceptClient=null;
@@ -164,13 +164,13 @@ public class Client {
 				requestForList();
 			else if(command.equals(Constants.Client.CONNECT_COMMAND) || command.startsWith(Constants.Client.CONNECT_COMMAND+" ")) {
 				if(isCurrentlyChatting()) {
-					System.out.println("You are already connected to someone. Please disconnect first. Type 'bye'");
+					System.out.println("\nYou are already connected to someone. Please disconnect first. Type 'bye'");
 					continue;
 				}
 				int spaceIndex=command.indexOf(' ');
 				String name;
 				if(spaceIndex==-1) {	//if name is not given with the command 
-					System.out.print("Whom do you want to chat with? ");
+					System.out.print("\nWhom do you want to chat with? ");
 					try {
 						name=br.readLine();
 					} catch (IOException e) {
@@ -183,10 +183,10 @@ public class Client {
 				if(otherClients.containsKey(name))
 					connectToClient(name);
 				else
-					System.err.println("Invalid client name, try again!!!");
+					System.err.println("\nInvalid client name, try again!!! Type '"+Constants.Client.LIST_COMMAND+"' to get the list of online clients");
 			} else if(command.equals(Constants.Client.MESSAGE_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
-					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
+					System.out.println("\nNot chatting with anyone currently. Please connect to someone first.");
 					continue;
 				}
 				String msg; 
@@ -199,22 +199,25 @@ public class Client {
 					releaseTerminal();
 					continue;
 				}
-				sendMessageToChatPartner(msg);
+				if(msg.trim().length()==0)
+					System.out.println("Please enter some message. Type '"+Constants.Client.MESSAGE_COMMAND+"' to send a message.");
+				else
+					sendMessageToChatPartner(msg);
 				releaseTerminal();
 			} else if(command.equals(Constants.Client.DISCONNECT_COMMAND)) {
 				if(!isCurrentlyChatting()) {	//if not chatting with anyone currently
-					System.out.println("Not chatting with anyone currently. Please connect to someone first.");
+					System.out.println("\nNot chatting with anyone currently. Please connect to someone first.");
 					continue;
 				}
 				disconnectFromClient();
 			} else if(command.equals(Constants.Client.HELP_COMMAND)) {
 				System.out.println(Constants.Client.HELP_TEXT);
 			} else if(command.equals(Constants.Client.EXIT_COMMAND)) {
-				System.out.println("Exiting.");
+				System.out.println("\nExiting.");
 				shutdown();
 				System.exit(0);
 			} else {
-				System.out.println("Invalid command. Type 'help' for help text.");
+				System.out.println("\nInvalid command. Type 'help' for help text.");
 			}
 		}
 	}
@@ -238,7 +241,7 @@ public class Client {
 		sendThroughSocket(Constants.Client.CHAT_REQUEST+" "+nickname, clientSocket, cd.getIP(), cd.getPort());	//send chat request
 		pendingChatRequestPartner=name;
 		pendingChatRequest=true;
-		System.out.println("Trying to connect to "+name);
+		System.out.println("\nTrying to connect to "+name);
 		chatRequestTimeout.schedule(new ChatRequestTimeout(), Constants.Client.CHAT_REQUEST_TIMEOUT);
 	}
 	
@@ -255,7 +258,7 @@ public class Client {
 		if(currentChatPartner==null)
 			return;
 		sendThroughSocket(Constants.Client.MESSAGE_COMMAND+" "+msg, clientSocket, currentChatPartner.getIP(), currentChatPartner.getPort());	//send message
-		System.out.println("Message Sent: "+msg);
+		System.out.println("\nMessage Sent: "+msg);
 	}
 	
 	public boolean isCurrentlyChatting() {
@@ -277,7 +280,7 @@ public class Client {
 		try {
 			socket.send(new DatagramPacket(data, data.length, ip, port));	//send the heartbeat
 		} catch (IOException e) {
-			System.err.println("Unable to send message");
+			System.err.println("\nUnable to send message");
 			return false;
 		}
 		return true;
@@ -357,7 +360,7 @@ public class Client {
 					sendThroughSocket(Constants.HEARTBEAT_ID+" "+clientSocket.getLocalPort()+" "+nickname, serverSocket, serverIP, Constants.Server.PORT);
 				}
 				else if(reply[0].trim().equals(Constants.ACCEPTED_NICKNAME)){
-					System.out.println("Connection established. Type 'help' to get help text.");
+					System.out.println("\nConnection established. Type 'help' to get help text.");
 					heartbeatTimer.scheduleAtFixedRate(new HeartbeatTask(), 0, Constants.Client.HEARTBEAT_RATE);
 					nicknameAccepted=true;
 				}
@@ -388,7 +391,7 @@ public class Client {
 							sendThroughSocket(Constants.Client.CHAT_DENY, clientSocket, packet.getAddress(), packet.getPort());	//deny the request
 							continue;
 						}
-						System.out.println("User '"+parts[1]+"' wants to chat with you. Accept(y/n)?");
+						System.out.println("\nUser '"+parts[1]+"' wants to chat with you. Accept(y/n)?");
 						pendingAcceptClient=new ClientDetails(parts[1], packet.getAddress(), packet.getPort());
 						pendingChatAccept=true;
 					}
@@ -398,7 +401,7 @@ public class Client {
 					if(!verifyClient(packet.getAddress(), otherClients.get(pendingChatRequestPartner)))
 						continue;
 					currentChatPartner=otherClients.get(pendingChatRequestPartner);
-					System.out.println("Request accepted by "+pendingChatRequestPartner);
+					System.out.println("\nRequest accepted by "+pendingChatRequestPartner);
 					msgQueue.clear();	//clear message queue
 					currentlyChatting=true;
 					pendingChatRequest=false;
@@ -407,13 +410,13 @@ public class Client {
 					if(pendingChatAccept) {
 						pendingChatAccept=false;
 						pendingAcceptClient=null;
-						System.out.println("Request timed out.");
+						System.out.println("\nRequest timed out.");
 					}
 					if(!pendingChatRequest)	//ignore if no pending chat request
 						continue;
 					if(!verifyClient(packet.getAddress(), otherClients.get(pendingChatRequestPartner)))
 						continue;
-					System.out.println("Request denied by "+pendingChatRequestPartner);
+					System.out.println("\nRequest denied by "+pendingChatRequestPartner);
 					pendingChatRequest=false;
 					pendingChatRequestPartner=null;
 				} else if(reply.startsWith(Constants.Client.MESSAGE_COMMAND+" ")) {
@@ -430,7 +433,7 @@ public class Client {
 						continue;	//ignore if not chatting currently
 					if(!verifyClient(packet.getAddress(), currentChatPartner))
 						continue;
-					System.out.println("Disconnected from "+currentChatPartner.getName());
+					System.out.println("\nDisconnected from "+currentChatPartner.getName());
 					currentChatPartner=null;
 					currentlyChatting=false;
 				} else if(reply.equals(Constants.Client.CHAT_TYPING)) {
@@ -466,13 +469,13 @@ public class Client {
 		public void run() {
 			Iterator<String> it=otherClients.keySet().iterator();
 			if(!it.hasNext()) {
-				System.out.println("Sorry no other clients are online.");
+				System.out.println("\n###Sorry no other clients are online.");
 				waitForList=false;
 				return;
 			}
-			System.out.println("The following other clients are online:");
+			System.out.println("\n###The following other clients are online:");
 			while(it.hasNext()) {
-				System.out.println(it.next());
+				System.out.println("##\t"+it.next());
 			}
 			waitForList=false;
 		}
@@ -496,7 +499,7 @@ public class Client {
 				if(msg==null)
 					continue;
 				
-				System.out.println(currentChatPartner.getName()+" says: "+msg);
+				System.out.println("\n"+currentChatPartner.getName()+" says: "+msg);
 			}
 		}
 	}
